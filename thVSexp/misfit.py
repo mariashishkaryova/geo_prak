@@ -6,11 +6,11 @@ import matplotlib.pyplot as plt
 
 
 BASE_FOLDER = "geo_prak"
-
+SAVE_PASH = os.path.join(BASE_FOLDER,"thVSexp")
 THEORY_FOLDER = os.path.join(BASE_FOLDER, "theory")
 EXPERIMENT_FOLDER = os.path.join(BASE_FOLDER, "experiment")
 
-RESULT_FOLDER = os.path.join(BASE_FOLDER, "results of misfit")
+RESULT_FOLDER = os.path.join(SAVE_PASH, "results of misfit")
 
 os.makedirs(RESULT_FOLDER, exist_ok=True)
 
