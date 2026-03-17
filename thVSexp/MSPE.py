@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 BASE_FOLDER = "geo_prak"
 SAVE_PASH = os.path.join(BASE_FOLDER,"thVSexp")
-THEORY_FOLDER = os.path.join(BASE_FOLDER, "theory")
+THEORY_FOLDER = os.path.join(BASE_FOLDER, "new_theory")
 EXPERIMENT_FOLDER = os.path.join(BASE_FOLDER, "experiment")
 
 RESULT_FOLDER = os.path.join(SAVE_PASH, "results of MSPE")

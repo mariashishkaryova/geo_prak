@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 BASE_FOLDER = "geo_prak"
 SAVE_PASH = os.path.join(BASE_FOLDER,"thVSexp")
-THEORY_FOLDER = os.path.join(BASE_FOLDER, "theory")
+THEORY_FOLDER = os.path.join(BASE_FOLDER, "new_theory")
 EXPERIMENT_FOLDER = os.path.join(BASE_FOLDER, "experiment")
 
 RESULT_FOLDER = os.path.join(SAVE_PASH, "results of cross_correlation")
@@ -16,22 +16,17 @@ os.makedirs(RESULT_FOLDER, exist_ok=True)
 
 
 def prepare_comparison_data(t_exp, m_exp, t_th, m_th, window=20):
-    """
-    核心对齐逻辑：
-    1. 计算实验数据与理论数据的比例，执行降采样 (Decimate)
-    2. 找到各自的峰值索引
-    3. 截取峰值前后 window 长度的窗口
-    """
-    # 1. 计算步长进行降采样 (例如 3000点/200点 = 15)
+
+    # 算步长进行降采样,例如 3000点/200点 = 15
     step = max(1, len(m_exp) // len(m_th))
     m_exp_dec = m_exp[::step]
     t_exp_dec = t_exp[::step]
 
-    # 2. 找到峰值位置
+    # 找到峰值位置
     idx_exp = np.argmax(m_exp_dec)
     idx_th = np.argmax(m_th)
 
-    # 3. 截取窗口 (idx - 20 : idx + 20)
+    # 截取窗口 (idx - 20 : idx + 20)
     # 处理边界防止 [idx-20] 变成负数或超过数组长度
     s1, e1 = max(0, idx_exp - window), min(len(m_exp_dec), idx_exp + window + 1)
     s2, e2 = max(0, idx_th - window), min(len(m_th), idx_th + window + 1)
@@ -39,10 +34,10 @@ def prepare_comparison_data(t_exp, m_exp, t_th, m_th, window=20):
     y_exp = m_exp_dec[s1:e1]
     y_th = m_th[s2:e2]
 
-    # 4. 强制长度对齐 (计算误差必须要求数组等长)
+    # 强制长度对齐 (计算误差必须要求数组等长)
     min_len = min(len(y_exp), len(y_th))
     
-    # 返回: 实验窗口, 理论窗口, 降采样后的实验时间, 降采样后的实验数值
+
     return y_exp[:min_len], y_th[:min_len], t_exp_dec, m_exp_dec
 
 # in [0,1]
