@@ -19,10 +19,12 @@ os.makedirs(RESULT_RMSE, exist_ok=True)
 
 def prepare_comparison_data(t_exp, m_exp, t_th, m_th, window=20):
     step = max(1, len(m_exp) // len(m_th))
+    #自动计算步长，根据实验数据的长度自动将密度浓缩到对应的区间内，然后去除以理论的长度。
     m_exp_dec = m_exp[::step]
     t_exp_dec = t_exp[::step]
     idx_exp = np.argmax(m_exp_dec)
     idx_th = np.argmax(m_th)
+    
     s1, e1 = max(0, idx_exp - window), min(len(m_exp_dec), idx_exp + window + 1)
     s2, e2 = max(0, idx_th - window), min(len(m_th), idx_th + window + 1)
     y_exp, y_th = m_exp_dec[s1:e1], m_th[s2:e2]
