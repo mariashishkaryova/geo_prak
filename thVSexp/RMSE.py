@@ -75,25 +75,33 @@ def read_experiment(file):
 
 # read th
 def read_model(file):
-    params = {}
-    data_list = []
+
     with open(file, "r", encoding="utf-8") as f:
         lines = f.readlines()
+
+    data = []
+
     for line in lines:
-        line = line.strip()
-        if not line: continue
-        # 抓取参数: key = value
-        param_match = re.match(r"^([a-zA-Z0-9_]+)\s*=\s*([0-9.eE+-]+)", line)
-        if param_match:
-            params[param_match.group(1)] = float(param_match.group(2))
-            continue
-        # 抓取数据
-        data_match = re.match(r"^([0-9.eE+-]+)\s+([0-9.eE+-]+)$", line)
-        if data_match:
-            data_list.append([float(data_match.group(1)), float(data_match.group(2))])
-    data = np.array(data_list)
-    t_aligned, m_aligned = align_peak(data[:, 1], normalize(data[:, 0]))
-    return t_aligned, m_aligned, params
+
+        line = line.strip() # begin from numbers
+
+        match = re.match(r"([0-9.eE+-]+)\s+([0-9.eE+-]+)", line)
+
+        if match:
+
+            moment = float(match.group(1))
+            time = float(match.group(2))
+
+            data.append([moment, time])
+
+    data = np.array(data)
+
+    moment = normalize(data[:,0])
+    time = data[:,1]
+
+    time, moment = align_peak(time, moment)
+
+    return time, moment
 
 
 
@@ -112,64 +120,49 @@ def rmse(a, b, fraction=0.75):
 def find_best_models(t_exp, m_exp, theory_files):
     results = []
     for file in theory_files:
-        t_th, m_th, params = read_model(file)
+        t_th, m_th = read_model(file)
+
+   
         y_exp_win, y_th_win, t_dec, m_dec = prepare_comparison_data(t_exp, m_exp, t_th, m_th)
-        
-        # 计算 rmse
-        rmse_val = np.mean(np.abs(y_exp_win - y_th_win))
-        
-        results.append({
-            'file': file, 't_th': t_th, 'm_th': m_th, 'rmse': rmse_val,
-            't_dec': t_dec, 'm_dec': m_dec, 'params': params
-        })
-    results.sort(key=lambda x: x['rmse'])
+
+
+        error = rmse(y_exp_win, y_th_win) 
+
+  
+        results.append((file, t_th, m_th, error, t_dec, m_dec))
+
+    results.sort(key=lambda x: x[3])
     
-    # 定义阈值: 最小rmse的1.1倍
-    min_rmse = results[0]['rmse']
-    threshold = min_rmse * 1.1
-    return results[:4], min_rmse, threshold
+    return results[:4]
 
-# --- 5. 绘图并自动计算 平均值 +/- 误差 ---
-def plot_result(exp_name, top_4, min_rmse, threshold):
-    plt.figure(figsize=(12, 7))
-    
-    # 实验数据
-    first = top_4[0]
-    t_exp_shifted = first['t_dec'] - first['t_dec'][np.argmax(first['m_dec'])]
-    plt.plot(t_exp_shifted, first['m_dec'], lw=3, color='black', label='Experiment', zorder=10)
 
-    # 统计参数
-    param_keys = ['a', 'b', 'x0', 'vr', 'A0', 'Xmax', 'sigmaX', 'sigmaY', 'M0', 'Mr_max']
-    collected = {k: [] for k in param_keys}
-    
-    colors = ['red', 'blue', 'green', 'orange']
-    for i, res in enumerate(top_4):
-        t_th_shifted = res['t_th'] - res['t_th'][np.argmax(res['m_th'])]
-        plt.plot(t_th_shifted, res['m_th'], color=colors[i], alpha=0.7, 
-                 label=f"Top {i+1} (rmse={res['rmse']:.2e})")
-        for k in param_keys:
-            if k in res['params']: collected[k].append(res['params'][k])
 
-    # 生成统计文本: 平均值 +/- 绝对误差(标准差)
-    stats_text = [f"Criteria: rmse < {threshold:.2e}", "Stats (Mean ± Std):"]
-    for k in param_keys:
-        if collected[k]:
-            m, s = np.mean(collected[k]), np.std(collected[k])
-            stats_text.append(f"{k:7s}: {m:.2e} ± {s:.2e}")
+def plot_result(exp_name, best_models): 
+    plt.figure(figsize=(8,5))
 
-    plt.gca().text(1.02, 0.5, "\n".join(stats_text), transform=plt.gca().transAxes,
-                   fontsize=9, family='monospace', verticalalignment='center',
-                   bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    _, _, _, _, t_exp_dec, m_exp_dec = best_models[0]
+    t_exp_shifted = t_exp_dec - t_exp_dec[np.argmax(m_exp_dec)]
 
-    plt.title(f"rmse Best Fit & Parameters: {exp_name}")
-    plt.legend(loc='upper right', fontsize='small')
+    plt.plot(t_exp_shifted, m_exp_dec, linewidth=3, label="Experiment", color="black")
+
+    colors = ["red","blue","green","orange"]
+    for i, (file, t_th, m_th, e, _, _) in enumerate(best_models):
+        name = os.path.basename(file)
+        t_th_shifted = t_th - t_th[np.argmax(m_th)]
+  
+        plt.plot(t_th_shifted, m_th, color=colors[i], label=f"{name} corr={e:.2e}")
+
+    plt.xlabel("Time relative to peak [s]")
+    plt.ylabel("Normalized Moment Rate")
+    plt.title(f"Cross-Correlation Best Matches: {exp_name}")
+    plt.legend()
     plt.grid(True, alpha=0.3)
-    plt.tight_layout(rect=[0, 0, 0.8, 1]) # 给右侧留空
-    
-    save_path = os.path.join(RESULT_FOLDER, f"{exp_name}_rmse_Stats.png")
-    plt.savefig(save_path, dpi=300)
-    plt.close()
+    plt.ylim(0, 1.1)
 
+    save_path = os.path.join(RESULT_FOLDER, f"{exp_name}_comparison.png")
+    plt.savefig(save_path, dpi=300)
+    print("Saved:", save_path)
+    plt.close()
     
 
 def main():
