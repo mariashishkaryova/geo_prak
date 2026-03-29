@@ -4,12 +4,12 @@ vr = 2300
 a = 10800
 b = 14300
 k = 1.32
-sigmax = 15100
-sigmay = 18800
+sigmaX = 15100
+sigmaY = 18800
 x0 = 10200
 f = 0.94
 xx0 = 10800
 yy0 = 0
 g = 1
-Mrmax = 4.92e+18
+Mr_max = 4.92e+18
 
